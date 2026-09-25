@@ -25,7 +25,10 @@ Pages.settings = {
         </div>
         <div class="card"><h2>💾 Sao lưu & khôi phục</h2>
           <div class="row"><button class="btn" id="export">⬇ Xuất file sao lưu (.json)</button>
+            <button class="btn" id="copy">📋 Sao chép dữ liệu</button>
             <label class="btn">⬆ Nhập file sao lưu<input type="file" id="import" accept="application/json,.json" class="hidden" /></label></div>
+          <p class="small muted mt">Nếu nút xuất file không tải được, dùng "Sao chép dữ liệu" rồi dán vào một file .json để lưu.</p>
+          <textarea id="dump" rows="4" class="hidden" readonly></textarea>
           <hr />
           <button class="btn danger" id="reset">🗑 Xoá toàn bộ tiến độ</button>
         </div>
@@ -73,8 +76,20 @@ Pages.settings = {
       };
       reader.readAsText(f);
     };
-    U.$('#reset', el).onclick = () => {
-      if (!confirm('Xoá toàn bộ tiến độ học? Hành động này không thể hoàn tác (trừ khi bạn đã xuất file sao lưu).')) return;
+    U.$('#copy', el).onclick = () => {
+      const json = Store.exportJSON();
+      const fallback = () => { const d = U.$('#dump', el); d.value = json; d.classList.remove('hidden'); d.select(); U.toast('Hãy nhấn Ctrl+C để sao chép.'); };
+      try { navigator.clipboard.writeText(json).then(() => U.toast('Đã sao chép dữ liệu ✔'), fallback); } catch (e) { fallback(); }
+    };
+    // Xác nhận hai bước ngay trên trang (không dùng confirm())
+    let armed = false;
+    U.$('#reset', el).onclick = e => {
+      if (!armed) {
+        armed = true;
+        e.target.textContent = '⚠️ Bấm lần nữa để xoá vĩnh viễn';
+        setTimeout(() => { armed = false; if (document.body.contains(e.target)) e.target.textContent = '🗑 Xoá toàn bộ tiến độ'; }, 4000);
+        return;
+      }
       Store.reset();
       App.applyTheme(); App.updateStreak(); App.route();
       U.toast('Đã xoá dữ liệu.');
